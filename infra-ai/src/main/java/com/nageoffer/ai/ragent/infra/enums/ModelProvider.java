@@ -49,6 +49,11 @@ public enum ModelProvider {
     AI_HUB_MIX("aihubmix"),
 
     /**
+     * DeepSeek 官方开放平台
+     */
+    DEEP_SEEK("deepseek"),
+
+    /**
      * Atlas Cloud OpenAI-compatible model service
      */
     ATLAS_CLOUD("atlascloud"),

@@ -42,16 +42,26 @@ ragent:
 # Agent 执行架构（ragent.engine.type=agent 时生效）；单模型无 fallback，供应商可用性由 provider 侧保障
 agent:
   chat:
-    provider: siliconflow   # 引用 ai.providers 下的供应商，取其 url / api-key / endpoints.chat
-    model: deepseek-ai/DeepSeek-V4-Pro    # 直接传给 OpenAI 兼容端点的模型名
+    provider: deepseek   # 引用 ai.providers 下的供应商，取其 url / api-key / endpoints.chat
+    model: deepseek-flash    # 直接传给 OpenAI 兼容端点的模型名
   max-iters: 10         # ReAct 循环上限，超出后熔断收尾
-  max-retries: 2        # 单次模型调用失败重试次数
+  max-retries: 1        # 最大尝试次数含首次，1 即不重试
   sse-timeout-ms: 900000
   memory:
     context-window-chars: 100000
     summary-enabled: true
     long-term-enabled: true
     evictable-tools: [ search_knowledge ]
+  trace:
+    enabled: false  # 开启前先起 resources/docker/langfuse 那套服务
+    capture-content: true  # 记录提示词与工具出入参；纯骨架改 false
+    endpoint: http://localhost:3000/api/public/otel/v1/traces
+    public-key: pk-lf-ragent-local     # 与 compose 里的 LANGFUSE_INIT_PROJECT_PUBLIC_KEY 一致
+    secret-key: sk-lf-ragent-local     # 与 compose 里的 LANGFUSE_INIT_PROJECT_SECRET_KEY 一致
+    max-field-chars: 32768
+    max-attribute-chars: 131072 # 超限退成带 preview 的合法 JSON
+    service-version:  # 留空取 build-info 版本；要盖 pom 版本才填
+    environment:      # 如 local / staging / prod
 
 rag:
   storage:
@@ -211,9 +221,9 @@ ai:
       endpoints:
         chat: /v1/chat/completions
         embedding: /v1/embeddings
-    siliconflow:
-      url: https://api.siliconflow.cn
-      api-key: ${SILICONFLOW_API_KEY:}
+    deepseek:
+      url: https://api.deepseek.com
+      api-key: ${DEEPSEEK_API_KEY:}
       endpoints:
         chat: /v1/chat/completions
         embedding: /v1/embeddings
@@ -248,9 +258,9 @@ ai:
       - id: gpt-5.4
         provider: aihubmix
         model: gpt-5.4
-      - id: deepseekv4pro
-        provider: siliconflow
-        model: deepseek-ai/DeepSeek-V4-Pro
+      - id: deepseek-flash
+        provider: deepseek
+        model: deepseek-flash
         supports-thinking: true
       - id: atlas-deepseek-v4-pro
         provider: atlascloud
@@ -267,10 +277,10 @@ ai:
         candidates: [ qwen-flash, qwen-plus, qwen3-local ]
         timeout-ms: 5000
       standard:
-        candidates: [ qwen3-max, qwen-plus, qwen3-local, gpt-5.4 ]
+        candidates: [ qwen3-max, qwen-plus, deepseek-flash, qwen3-local, gpt-5.4 ]
         timeout-ms: 120000
       deep:
-        candidates: [ qwen3-max, deepseekv4pro ]
+        candidates: [ qwen3-max, deepseek-flash ]
         timeout-ms: 180000
 
   embedding:
